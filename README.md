@@ -1,24 +1,57 @@
-# Sui NFT Mint Sample (Hands-on)
+# Sui Testnet NFT ミント手順
 
-このリポジトリは、Sui Testnet 上で最小構成の NFT ミント dApp を構築するハンズオン教材です。Move コントラクトと React + dApp Kit フロントエンドを組み合わせ、ウォレット接続から `move_call` 実行までを体験できます。
+このリポジトリは、用意済みの Move コントラクト（Package ID `0xad1b749cc2932edc42351ba086b371bd75b9a2b2347abf71c30469bf66f188af`）を使って、Sui Testnet 上で NFT をミントするハンズオン用フロントエンドを提供します。参加者はコントラクトをデプロイする必要はなく、Testnet でミントと確認を体験できます。
 
-## ディレクトリ構成
+## 前提
 
-- `contracts/` — Move パッケージ（`nft` モジュール）とテスト
-- `app/` — React + Vite フロントエンド
-- `docs/` — ハンズオン用ドキュメント
-- `.devcontainer/` — GitHub Codespaces 向けの開発環境定義
+- Chrome 等のブラウザ
+- Sui Wallet など Testnet に切り替え可能なウォレット拡張（Testnet SUI を取得しておく）
+- Node.js 18 以上 + pnpm（ローカルで起動する場合）
 
-## クイックスタート
+## セットアップとミント手順
 
-1. Codespaces またはローカル環境でリポジトリを開く
-2. `contracts/` で `sui move build`・`sui client publish` を実行し Package ID を取得
-3. `app/.env.example` を `.env` にコピーし Package ID 等を入力
-4. `pnpm install && pnpm dev -- --host` でフロントエンドを起動
-5. ウォレットを接続して NFT をミント、Sui Vision で結果を確認
+1. 依存関係をインストールします。
+   ```bash
+   cd app
+   pnpm install
+   ```
+2. `.env` を作成し、以下の内容を設定します（Package ID は固定済み）。
+   ```env
+   VITE_SUI_NETWORK=testnet
+   VITE_PACKAGE_ID=0xad1b749cc2932edc42351ba086b371bd75b9a2b2347abf71c30469bf66f188af
+   VITE_MODULE=nft
+   VITE_FN_MINT=mint
+   ```
+3. 開発サーバを起動します。
+   ```bash
+   pnpm dev -- --host
+   ```
+   表示された URL をブラウザで開き、Sui Wallet を Testnet に切り替えた状態で接続します。
+4. 名前・説明・画像 URL を入力し、「NFT をミント」を押してウォレットで署名します。
+5. 画面下部に Tx Digest と Object ID が表示されます。その値を控えて次の確認手順に進みます。
 
-詳細な手順は `docs/HANDSON_GUIDE.md` を参照してください。
+## パッケージの確認方法
 
-## ライセンス
+- [Sui Vision (Testnet)](https://suivision.xyz/package/0xad1b749cc2932edc42351ba086b371bd75b9a2b2347abf71c30469bf66f188af?network=testnet)
+  - `Code` タブで `nft::mint` と `init` を確認できます。
+  - `Objects` タブに Display オブジェクトが共有されていることも表示されます。
 
-MIT License
+## ミント結果（Tx / NFT）の確認方法
+
+1. [Sui Vision](https://suivision.xyz/?network=testnet) を開きます。右上が Testnet になっていることを確認してください。
+2. ミント画面で控えた ID を検索欄に貼り付けて確認します。
+   - `Tx Digest`: トランザクション詳細が表示され、イベントやガス代を確認できます。
+   - `Object ID`: ミントした NFT オブジェクトの所有者・フィールド (`name`, `description`, `image_url`) が表示されます。
+3. 必要に応じてウォレットの `Objects` タブでも所有状態を確認してください。
+
+## コントラクトについて
+
+- Move コードは `contracts/sources/nft.move` にあります。
+- publish 時に `init` が走り、Display のテンプレート（name/description/image/link）が自動登録されます。
+- フロントエンドは `app/src` にあり、`@mysten/dapp-kit` でウォレット接続と `move_call` を行います。
+
+## 余計なファイルについて
+
+- `app/dist` や `app/node_modules` などのビルド成果物はリポジトリから削除済みです。必要に応じて各自の環境で再生成してください。
+
+これで Testnet 上での NFT ミント体験が完結します。ウォレットが Testnet になっていることと、Tx Digest / Object ID を正しく控えることに注意してください。
