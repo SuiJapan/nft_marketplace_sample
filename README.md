@@ -50,8 +50,5 @@
 - publish 時に `init` が走り、Display のテンプレート（name/description/image/link）が自動登録されます。
 - フロントエンドは `app/src` にあり、`@mysten/dapp-kit` でウォレット接続と `move_call` を行います。
 
-## 余計なファイルについて
-
-- `app/dist` や `app/node_modules` などのビルド成果物はリポジトリから削除済みです。必要に応じて各自の環境で再生成してください。
 
 これで Testnet 上での NFT ミント体験が完結します。ウォレットが Testnet になっていることと、Tx Digest / Object ID を正しく控えることに注意してください。
