@@ -4,9 +4,6 @@ module nft::nft {
     use sui::display;
     use sui::event;
     use sui::package;
-    use sui::transfer;
-    use sui::object;
-    use sui::tx_context;
 
     // 入力バリデーション用のエラーコード。
     const E_EMPTY_NAME: u64 = 1;
@@ -109,7 +106,7 @@ module nft::nft {
         );
 
         display::update_version(&mut disp);
-        transfer::public_share_object(disp);
+        transfer::public_transfer(disp, tx_context::sender(ctx));
 
         // Publisher を発行者へ返す（保有しておきたいケースが多い）
         transfer::public_transfer(publisher, tx_context::sender(ctx));
