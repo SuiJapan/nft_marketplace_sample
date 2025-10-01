@@ -8,3 +8,4 @@ app/**/*.tsbuildinfo
 **/.DS_Store
 .sui
 *.log
+.pnpm-store/
