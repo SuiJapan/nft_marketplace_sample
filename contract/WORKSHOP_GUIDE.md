@@ -42,7 +42,7 @@ sui client call \
   --package $PACKAGE_ID \
   --module workshop_nft \
   --function mint \
-  --args "My NFT" "Description" "https://example.com/nft.png" $CLOCK \
+  --args "My NFT" "Description" "<img src="https://picsum.photos/300/300">" $CLOCK \
   --gas-budget 10000000
 ```
 
@@ -52,7 +52,7 @@ sui client call `
   --package $env:PACKAGE_ID `
   --module workshop_nft `
   --function mint `
-  --args "My NFT" "Description" "https://example.com/nft.png" $env:CLOCK `
+  --args "My NFT" "Description" "<img src="https://picsum.photos/300/300">" $env:CLOCK `
   --gas-budget 10000000
 ```
 
@@ -113,7 +113,7 @@ sui client call \
   --package $PACKAGE_ID \
   --module workshop_nft \
   --function mint \
-  --args "My First NFT" "Workshop Demo NFT" "https://example.com/nft.png" $CLOCK \
+  --args "My First NFT" "Workshop Demo NFT" "<img src="https://picsum.photos/300/300">" $CLOCK \
   --gas-budget 10000000
 ```
 
