@@ -214,7 +214,7 @@ sui client call \
 **Kioskの確認:**
 ```bash
 # Kioskに入っているNFTを確認
-sui client object $KIOSK_ID --json | jq '.data.content.fields'
+sui client object $KIOSK_ID --json | jq '.content.fields'
 ```
 
 #### 📊 ビジュアル図解
