@@ -2,6 +2,7 @@
 module contract::workshop_nft_tests;
 
 use std::string;
+use sui::clock::{Self, Clock};
 use sui::test_scenario::{Self as ts, Scenario};
 use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
 use sui::package::Publisher;
@@ -41,12 +42,15 @@ fun test_mint_nft_success() {
     // Mint NFT
     ts::next_tx(&mut scenario, USER1);
     {
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b"A test NFT"),
             string::utf8(b"https://example.com/nft.png"),
+            &clock,
             ts::ctx(&mut scenario)
         );
+        clock::destroy_for_testing(clock);
     };
 
     // Verify NFT was transferred to USER1
@@ -75,12 +79,15 @@ fun test_mint_nft_empty_name() {
     // Try to mint NFT with empty name
     ts::next_tx(&mut scenario, USER1);
     {
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b""),  // Empty name
             string::utf8(b"A test NFT"),
             string::utf8(b"https://example.com/nft.png"),
+            &clock,
             ts::ctx(&mut scenario)
         );
+        clock::destroy_for_testing(clock);
     };
 
     ts::end(scenario);
@@ -102,12 +109,15 @@ fun test_mint_nft_empty_description() {
     // Try to mint NFT with empty description
     ts::next_tx(&mut scenario, USER1);
     {
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b""),  // Empty description
             string::utf8(b"https://example.com/nft.png"),
+            &clock,
             ts::ctx(&mut scenario)
         );
+        clock::destroy_for_testing(clock);
     };
 
     ts::end(scenario);
@@ -129,12 +139,15 @@ fun test_mint_nft_empty_url() {
     // Try to mint NFT with empty URL
     ts::next_tx(&mut scenario, USER1);
     {
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b"A test NFT"),
             string::utf8(b""),  // Empty URL
+            &clock,
             ts::ctx(&mut scenario)
         );
+        clock::destroy_for_testing(clock);
     };
 
     ts::end(scenario);
@@ -187,6 +200,7 @@ fun test_mint_and_list() {
     {
         let mut kiosk = ts::take_shared<Kiosk>(&scenario);
         let kiosk_cap = ts::take_from_sender<KioskOwnerCap>(&scenario);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
         workshop_nft::mint_and_list(
             &mut kiosk,
@@ -195,9 +209,11 @@ fun test_mint_and_list() {
             string::utf8(b"An NFT listed on Kiosk"),
             string::utf8(b"https://example.com/listed.png"),
             1_000_000_000,  // 1 SUI in MIST
+            &clock,
             ts::ctx(&mut scenario)
         );
 
+        clock::destroy_for_testing(clock);
         ts::return_to_sender(&scenario, kiosk_cap);
         ts::return_shared(kiosk);
     };
@@ -231,6 +247,7 @@ fun test_mint_and_list_zero_price() {
     {
         let mut kiosk = ts::take_shared<Kiosk>(&scenario);
         let kiosk_cap = ts::take_from_sender<KioskOwnerCap>(&scenario);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
         workshop_nft::mint_and_list(
             &mut kiosk,
@@ -239,9 +256,11 @@ fun test_mint_and_list_zero_price() {
             string::utf8(b"An NFT listed on Kiosk"),
             string::utf8(b"https://example.com/listed.png"),
             0,  // Invalid price
+            &clock,
             ts::ctx(&mut scenario)
         );
 
+        clock::destroy_for_testing(clock);
         ts::return_to_sender(&scenario, kiosk_cap);
         ts::return_shared(kiosk);
     };
