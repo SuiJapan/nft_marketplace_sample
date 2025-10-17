@@ -47,45 +47,45 @@ use sui::package::Publisher;
 use sui::transfer::{public_share_object, public_transfer};
 use sui::transfer_policy;
 
-// ===== Error Codes =====
+// ===== エラーコード =====
 
-/// Error: Empty string provided for name, description, or url
+/// エラー: name、description、urlに空文字列が指定されました
 const EEmptyString: u64 = 1;
 
-/// Error: Invalid price (must be greater than 0)
+/// エラー: 無効な価格（0より大きい必要があります）
 const EInvalidPrice: u64 = 2;
 
-// ===== Structs =====
+// ===== 構造体 =====
 
-/// One-Time-Witness for the module
+/// モジュール用のOne-Time-Witness
 public struct WORKSHOP_NFT has drop {}
 
-/// Metadata: Dynamic field data for NFT attributes
-/// This struct demonstrates Dynamic Field usage - can be added to any NFT dynamically
-/// - rarity: Rarity level (1=Common, 2=Rare, 3=Epic, 4=Legendary)
-/// - level: Item level (used in game mechanics)
+/// Metadata: NFT属性のためのDynamic Fieldデータ
+/// この構造体はDynamic Fieldの使用方法を示します - 任意のNFTに動的に追加可能
+/// - rarity: レアリティレベル（1=Common、2=Rare、3=Epic、4=Legendary）
+/// - level: アイテムレベル（ゲームメカニクスで使用）
 public struct Metadata has store {
     rarity: u8,
     level: u64,
 }
 
-/// Accessory: A separate object that can be attached to NFTs
-/// This struct demonstrates Dynamic Object Field usage - remains independently accessible
-/// - id: Unique identifier (required for Dynamic Object Field)
-/// - accessory_type: Type of accessory (e.g., "hat", "weapon", "shield")
-/// - bonus_value: Numeric bonus provided by this accessory
+/// Accessory: NFTに添付できる独立したオブジェクト
+/// この構造体はDynamic Object Fieldの使用方法を示します - 独立してアクセス可能なまま
+/// - id: 一意の識別子（Dynamic Object Fieldに必要）
+/// - accessory_type: アクセサリーの種類（例: "hat"、"weapon"、"shield"）
+/// - bonus_value: このアクセサリーが提供する数値ボーナス
 public struct Accessory has key, store {
     id: UID,
     accessory_type: String,
     bonus_value: u64,
 }
 
-/// WorkshopNft: A simple NFT with metadata
-/// - id: Unique identifier for the NFT object
-/// - name: Display name of the NFT
-/// - description: Description of the NFT
-/// - url: Image URL for the NFT
-/// - created_at: Timestamp when the NFT was created (milliseconds since Unix Epoch)
+/// WorkshopNft: メタデータを持つシンプルなNFT
+/// - id: NFTオブジェクトの一意の識別子
+/// - name: NFTの表示名
+/// - description: NFTの説明
+/// - url: NFTの画像URL
+/// - created_at: NFTが作成されたタイムスタンプ（Unix Epochからのミリ秒）
 public struct WorkshopNft has key, store {
     id: UID,
     name: String,
@@ -94,17 +94,17 @@ public struct WorkshopNft has key, store {
     created_at: u64,
 }
 
-// ===== Module Initialization =====
+// ===== モジュールの初期化 =====
 
-/// Initialize the module
-/// - Create and configure Display<WorkshopNft> for frontend metadata display
-/// - Transfer Publisher to the deployer
+/// モジュールを初期化
+/// - フロントエンドのメタデータ表示用にDisplay<WorkshopNft>を作成・設定
+/// - Publisherをデプロイヤーに転送
 #[allow(lint(share_owned))]
 fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
-    // Claim the Publisher object
+    // Publisherオブジェクトを要求
     let publisher = package::claim(otw, ctx);
 
-    // Create Display object for WorkshopNft with fields
+    // WorkshopNft用のDisplayオブジェクトをフィールド付きで作成
     let keys = vector[
         string::utf8(b"name"),
         string::utf8(b"description"),
@@ -116,28 +116,28 @@ fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
         string::utf8(b"{url}"),
     ];
     let mut display = display::new_with_fields<WorkshopNft>(&publisher, keys, values, ctx);
-    // Move 2024 method syntax: call functions from the same module as the receiver's type
+    // Move 2024のメソッド構文: レシーバーの型と同じモジュールから関数を呼び出す
     display.update_version();
     public_share_object(display);
 
-    // Transfer Publisher back to the deployer
+    // Publisherをデプロイヤーに転送
     public_transfer(publisher, ctx.sender());
 }
 
-// ===== Core NFT Functions =====
+// ===== コアNFT関数 =====
 
-/// Create a new WorkshopNft (core logic)
+/// 新しいWorkshopNftを作成（コアロジック）
 ///
-/// Parameters:
-/// - name: NFT name (must not be empty)
-/// - description: NFT description (must not be empty)
-/// - url: NFT image URL (must not be empty)
-/// - clock: Clock object to get current timestamp
-/// - ctx: Transaction context
+/// パラメータ:
+/// - name: NFT名（空であってはならない）
+/// - description: NFT説明（空であってはならない）
+/// - url: NFT画像URL（空であってはならない）
+/// - clock: 現在のタイムスタンプを取得するClockオブジェクト
+/// - ctx: トランザクションコンテキスト
 ///
-/// Returns: WorkshopNft object
+/// 戻り値: WorkshopNftオブジェクト
 ///
-/// Aborts if: Any string parameter is empty
+/// 中断条件: いずれかの文字列パラメータが空の場合
 public(package) fun mint_nft(
     name: String,
     description: String,
@@ -145,15 +145,15 @@ public(package) fun mint_nft(
     clock: &Clock,
     ctx: &mut TxContext,
 ): WorkshopNft {
-    // Validate inputs
+    // 入力を検証
     assert!(!name.is_empty(), EEmptyString);
     assert!(!description.is_empty(), EEmptyString);
     assert!(!url.is_empty(), EEmptyString);
 
-    // Get current timestamp from Clock
+    // Clockから現在のタイムスタンプを取得
     let created_at = clock.timestamp_ms();
 
-    // Create and return the NFT
+    // NFTを作成して返す
     WorkshopNft {
         id: object::new(ctx),
         name,
@@ -163,18 +163,18 @@ public(package) fun mint_nft(
     }
 }
 
-/// Mint a new WorkshopNft (entry function)
+/// 新しいWorkshopNftをミント（エントリー関数）
 ///
-/// This is a thin wrapper around mint_nft that transfers the NFT to the caller.
+/// これはmint_nftの薄いラッパーで、NFTを呼び出し元に転送します。
 ///
-/// Parameters:
-/// - name: NFT name (must not be empty)
-/// - description: NFT description (must not be empty)
-/// - url: NFT image URL (must not be empty)
-/// - clock: Clock object to get current timestamp
-/// - ctx: Transaction context
+/// パラメータ:
+/// - name: NFT名（空であってはならない）
+/// - description: NFT説明（空であってはならない）
+/// - url: NFT画像URL（空であってはならない）
+/// - clock: 現在のタイムスタンプを取得するClockオブジェクト
+/// - ctx: トランザクションコンテキスト
 ///
-/// Aborts if: Any string parameter is empty
+/// 中断条件: いずれかの文字列パラメータが空の場合
 entry fun mint(
     name: String,
     description: String,
@@ -186,13 +186,13 @@ entry fun mint(
     public_transfer(nft, ctx.sender());
 }
 
-/// Initialize TransferPolicy<WorkshopNft> (entry function)
+/// TransferPolicy<WorkshopNft>を初期化（エントリー関数）
 ///
-/// Parameters:
-/// - publisher: Publisher object for the package
-/// - ctx: Transaction context
+/// パラメータ:
+/// - publisher: パッケージのPublisherオブジェクト
+/// - ctx: トランザクションコンテキスト
 ///
-/// Aborts if: Transfer policy already exists or caller is unauthorized
+/// 中断条件: 転送ポリシーが既に存在するか、呼び出し元が権限を持たない場合
 #[allow(lint(share_owned))]
 entry fun init_transfer_policy(
     publisher: Publisher,
@@ -204,46 +204,46 @@ entry fun init_transfer_policy(
     public_transfer(publisher, ctx.sender());
 }
 
-// ===== Kiosk Integration Functions =====
+// ===== Kiosk統合関数 =====
 
-/// Place NFT in Kiosk and list it for sale (core logic)
+/// NFTをKioskに配置し、販売用にリスト（コアロジック）
 ///
-/// Parameters:
-/// - kiosk: Mutable reference to the Kiosk
-/// - kiosk_cap: Reference to the KioskOwnerCap
-/// - nft: The WorkshopNft to place and list
-/// - price: Listing price in MIST (1 SUI = 1,000,000,000 MIST)
+/// パラメータ:
+/// - kiosk: Kioskへの可変参照
+/// - kiosk_cap: KioskOwnerCapへの参照
+/// - nft: 配置してリストするWorkshopNft
+/// - price: MISTでのリスト価格（1 SUI = 1,000,000,000 MIST）
 ///
-/// Aborts if: Price is 0 or negative
+/// 中断条件: 価格が0または負の場合
 public(package) fun place_and_list_core(
     kiosk: &mut Kiosk,
     kiosk_cap: &KioskOwnerCap,
     nft: WorkshopNft,
     price: u64,
 ) {
-    // Validate price
+    // 価格を検証
     assert!(price > 0, EInvalidPrice);
 
-    // Place the NFT in the Kiosk and list it for sale
-    // Method syntax on Kiosk since the function is defined in the same module as the receiver type
+    // NFTをKioskに配置し、販売用にリスト
+    // レシーバーの型と同じモジュールで関数が定義されているため、Kioskでメソッド構文を使用
     kiosk.place_and_list(kiosk_cap, nft, price);
 }
 
-/// Mint a new WorkshopNft and immediately list it in Kiosk (entry function)
+/// 新しいWorkshopNftをミントし、即座にKioskにリスト（エントリー関数）
 ///
-/// This is a convenience function that combines minting and listing in one transaction.
+/// これは、ミントとリストを1つのトランザクションで組み合わせた便利な関数です。
 ///
-/// Parameters:
-/// - kiosk: Mutable reference to the Kiosk
-/// - kiosk_cap: Reference to the KioskOwnerCap
-/// - name: NFT name (must not be empty)
-/// - description: NFT description (must not be empty)
-/// - url: NFT image URL (must not be empty)
-/// - price: Listing price in MIST (must be > 0)
-/// - clock: Clock object to get current timestamp
-/// - ctx: Transaction context
+/// パラメータ:
+/// - kiosk: Kioskへの可変参照
+/// - kiosk_cap: KioskOwnerCapへの参照
+/// - name: NFT名（空であってはならない）
+/// - description: NFT説明（空であってはならない）
+/// - url: NFT画像URL（空であってはならない）
+/// - price: MISTでのリスト価格（0より大きい必要がある）
+/// - clock: 現在のタイムスタンプを取得するClockオブジェクト
+/// - ctx: トランザクションコンテキスト
 ///
-/// Aborts if: Any validation fails
+/// 中断条件: いずれかの検証が失敗した場合
 entry fun mint_and_list(
     kiosk: &mut Kiosk,
     kiosk_cap: &KioskOwnerCap,
@@ -254,28 +254,28 @@ entry fun mint_and_list(
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
-    // Mint the NFT
+    // NFTをミント
     let nft = mint_nft(name, description, url, clock, ctx);
 
-    // Place and list in Kiosk
+    // Kioskに配置してリスト
     place_and_list_core(kiosk, kiosk_cap, nft, price);
 }
 
-// ===== Dynamic Field Functions =====
-// Dynamic fields allow adding arbitrary data to objects at runtime.
-// The stored value only needs the `store` ability.
+// ===== Dynamic Field関数 =====
+// Dynamic Fieldは実行時にオブジェクトに任意のデータを追加できます。
+// 格納される値は`store`アビリティのみが必要です。
 
-/// Add metadata to an NFT using Dynamic Field
+/// Dynamic Fieldを使用してNFTにメタデータを追加
 ///
-/// This demonstrates how to attach additional data to an NFT after creation.
-/// Dynamic fields are useful for extending objects without modifying their struct definition.
+/// これは作成後にNFTに追加データを添付する方法を示します。
+/// Dynamic Fieldは、構造体定義を変更せずにオブジェクトを拡張するのに便利です。
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - rarity: Rarity level (1=Common, 2=Rare, 3=Epic, 4=Legendary)
-/// - level: Item level
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - rarity: レアリティレベル（1=Common、2=Rare、3=Epic、4=Legendary）
+/// - level: アイテムレベル
 ///
-/// Note: The NFT "wraps" the metadata - it cannot be accessed by ID externally
+/// 注意: NFTはメタデータを「ラップ」します - 外部からIDでアクセスできません
 entry fun add_metadata(
     nft: &mut WorkshopNft,
     rarity: u8,
@@ -285,26 +285,26 @@ entry fun add_metadata(
     df::add(&mut nft.id, b"metadata", metadata);
 }
 
-/// Get metadata from an NFT
+/// NFTからメタデータを取得
 ///
-/// Parameters:
-/// - nft: Reference to the NFT
+/// パラメータ:
+/// - nft: NFTへの参照
 ///
-/// Returns: (rarity, level) tuple
+/// 戻り値: (rarity, level)タプル
 ///
-/// Aborts if: Metadata does not exist
+/// 中断条件: メタデータが存在しない場合
 public fun get_metadata(nft: &WorkshopNft): (u8, u64) {
     let metadata = df::borrow<vector<u8>, Metadata>(&nft.id, b"metadata");
     (metadata.rarity, metadata.level)
 }
 
-/// Update metadata of an NFT
+/// NFTのメタデータを更新
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - new_level: New level value
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - new_level: 新しいレベル値
 ///
-/// Aborts if: Metadata does not exist
+/// 中断条件: メタデータが存在しない場合
 entry fun update_metadata_level(
     nft: &mut WorkshopNft,
     new_level: u64,
@@ -313,40 +313,40 @@ entry fun update_metadata_level(
     metadata.level = new_level;
 }
 
-/// Check if an NFT has metadata
+/// NFTがメタデータを持っているか確認
 ///
-/// Parameters:
-/// - nft: Reference to the NFT
+/// パラメータ:
+/// - nft: NFTへの参照
 ///
-/// Returns: true if metadata exists
+/// 戻り値: メタデータが存在する場合true
 public fun has_metadata(nft: &WorkshopNft): bool {
     df::exists_<vector<u8>>(&nft.id, b"metadata")
 }
 
-/// Remove metadata from an NFT
+/// NFTからメタデータを削除
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
+/// パラメータ:
+/// - nft: NFTへの可変参照
 ///
-/// Returns: The removed Metadata
+/// 戻り値: 削除されたMetadata
 ///
-/// Aborts if: Metadata does not exist
+/// 中断条件: メタデータが存在しない場合
 public fun remove_metadata(nft: &mut WorkshopNft): Metadata {
     df::remove<vector<u8>, Metadata>(&mut nft.id, b"metadata")
 }
 
-// ===== Dynamic Object Field Functions =====
-// Dynamic object fields store other Sui objects (with `key` + `store` abilities).
-// Unlike regular dynamic fields, these objects remain accessible via their own ID.
+// ===== Dynamic Object Field関数 =====
+// Dynamic Object Fieldは他のSuiオブジェクト（`key` + `store`アビリティを持つ）を格納します。
+// 通常のDynamic Fieldとは異なり、これらのオブジェクトは独自のIDでアクセス可能なままです。
 
-/// Create a new Accessory object
+/// 新しいAccessoryオブジェクトを作成
 ///
-/// Parameters:
-/// - accessory_type: Type name (e.g., "hat", "weapon")
-/// - bonus_value: Numeric bonus value
-/// - ctx: Transaction context
+/// パラメータ:
+/// - accessory_type: タイプ名（例: "hat"、"weapon"）
+/// - bonus_value: 数値ボーナス値
+/// - ctx: トランザクションコンテキスト
 ///
-/// Returns: Accessory object
+/// 戻り値: Accessoryオブジェクト
 public fun create_accessory(
     accessory_type: String,
     bonus_value: u64,
@@ -359,15 +359,15 @@ public fun create_accessory(
     }
 }
 
-/// Attach an Accessory to an NFT using Dynamic Object Field
+/// Dynamic Object Fieldを使用してAccessoryをNFTに添付
 ///
-/// This demonstrates how to attach separate objects to an NFT.
-/// The accessory remains accessible via its own ID even when attached.
+/// これは、独立したオブジェクトをNFTに添付する方法を示します。
+/// アクセサリーは、添付されていても独自のIDでアクセス可能なままです。
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - accessory: The Accessory object to attach
-/// - slot_name: Name of the accessory slot (e.g., "head", "weapon")
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - accessory: 添付するAccessoryオブジェクト
+/// - slot_name: アクセサリースロットの名前（例: "head"、"weapon"）
 entry fun attach_accessory(
     nft: &mut WorkshopNft,
     accessory: Accessory,
@@ -376,15 +376,15 @@ entry fun attach_accessory(
     dof::add(&mut nft.id, slot_name, accessory);
 }
 
-/// Borrow an attached Accessory (read-only)
+/// 添付されたAccessoryを借用（読み取り専用）
 ///
-/// Parameters:
-/// - nft: Reference to the NFT
-/// - slot_name: Name of the accessory slot
+/// パラメータ:
+/// - nft: NFTへの参照
+/// - slot_name: アクセサリースロットの名前
 ///
-/// Returns: Reference to the Accessory
+/// 戻り値: Accessoryへの参照
 ///
-/// Aborts if: Accessory does not exist in the slot
+/// 中断条件: スロットにAccessoryが存在しない場合
 public fun borrow_accessory(
     nft: &WorkshopNft,
     slot_name: vector<u8>,
@@ -392,15 +392,15 @@ public fun borrow_accessory(
     dof::borrow<vector<u8>, Accessory>(&nft.id, slot_name)
 }
 
-/// Borrow an attached Accessory (mutable)
+/// 添付されたAccessoryを借用（可変）
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - slot_name: Name of the accessory slot
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - slot_name: アクセサリースロットの名前
 ///
-/// Returns: Mutable reference to the Accessory
+/// 戻り値: Accessoryへの可変参照
 ///
-/// Aborts if: Accessory does not exist in the slot
+/// 中断条件: スロットにAccessoryが存在しない場合
 public fun borrow_accessory_mut(
     nft: &mut WorkshopNft,
     slot_name: vector<u8>,
@@ -408,13 +408,13 @@ public fun borrow_accessory_mut(
     dof::borrow_mut<vector<u8>, Accessory>(&mut nft.id, slot_name)
 }
 
-/// Check if an NFT has an accessory in a specific slot
+/// NFTが特定のスロットにアクセサリーを持っているか確認
 ///
-/// Parameters:
-/// - nft: Reference to the NFT
-/// - slot_name: Name of the accessory slot
+/// パラメータ:
+/// - nft: NFTへの参照
+/// - slot_name: アクセサリースロットの名前
 ///
-/// Returns: true if accessory exists
+/// 戻り値: アクセサリーが存在する場合true
 public fun has_accessory(
     nft: &WorkshopNft,
     slot_name: vector<u8>,
@@ -422,15 +422,15 @@ public fun has_accessory(
     dof::exists_<vector<u8>>(&nft.id, slot_name)
 }
 
-/// Detach an Accessory from an NFT
+/// NFTからAccessoryを取り外す
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - slot_name: Name of the accessory slot
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - slot_name: アクセサリースロットの名前
 ///
-/// Returns: The detached Accessory object
+/// 戻り値: 取り外されたAccessoryオブジェクト
 ///
-/// Aborts if: Accessory does not exist in the slot
+/// 中断条件: スロットにAccessoryが存在しない場合
 public fun detach_accessory(
     nft: &mut WorkshopNft,
     slot_name: vector<u8>,
@@ -438,12 +438,12 @@ public fun detach_accessory(
     dof::remove<vector<u8>, Accessory>(&mut nft.id, slot_name)
 }
 
-/// Entry function to detach and transfer accessory to sender
+/// アクセサリーを取り外して送信者に転送するエントリー関数
 ///
-/// Parameters:
-/// - nft: Mutable reference to the NFT
-/// - slot_name: Name of the accessory slot
-/// - ctx: Transaction context
+/// パラメータ:
+/// - nft: NFTへの可変参照
+/// - slot_name: アクセサリースロットの名前
+/// - ctx: トランザクションコンテキスト
 entry fun detach_and_transfer_accessory(
     nft: &mut WorkshopNft,
     slot_name: vector<u8>,
@@ -453,23 +453,23 @@ entry fun detach_and_transfer_accessory(
     public_transfer(accessory, ctx.sender());
 }
 
-// ===== Integrated Workshop Demo Functions =====
+// ===== 統合ワークショップデモ関数 =====
 
-/// Comprehensive demo: Create an NFT with all features
+/// 包括的なデモ: すべての機能を持つNFTを作成
 ///
-/// This function demonstrates Clock, Dynamic Field, and Dynamic Object Field in action.
-/// It creates a fully-featured NFT with timestamp, metadata, and an attached accessory.
+/// この関数は、Clock、Dynamic Field、Dynamic Object Fieldの動作を示します。
+/// タイムスタンプ、メタデータ、添付されたアクセサリーを持つフル機能のNFTを作成します。
 ///
-/// Parameters:
-/// - name: NFT name
-/// - description: NFT description
-/// - url: NFT image URL
-/// - rarity: Rarity level (1-4)
-/// - level: Initial level
-/// - accessory_type: Type of accessory to attach
-/// - bonus_value: Accessory bonus value
-/// - clock: Clock object for timestamp
-/// - ctx: Transaction context
+/// パラメータ:
+/// - name: NFT名
+/// - description: NFT説明
+/// - url: NFT画像URL
+/// - rarity: レアリティレベル（1-4）
+/// - level: 初期レベル
+/// - accessory_type: 添付するアクセサリーのタイプ
+/// - bonus_value: アクセサリーのボーナス値
+/// - clock: タイムスタンプ用のClockオブジェクト
+/// - ctx: トランザクションコンテキスト
 entry fun mint_full_featured_nft(
     name: String,
     description: String,
@@ -481,14 +481,14 @@ entry fun mint_full_featured_nft(
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
-    // 1. Create NFT with Clock timestamp
+    // 1. Clockタイムスタンプを使用してNFTを作成
     let mut nft = mint_nft(name, description, url, clock, ctx);
 
-    // 2. Add metadata using Dynamic Field
+    // 2. Dynamic Fieldを使用してメタデータを追加
     let metadata = Metadata { rarity, level };
     df::add(&mut nft.id, b"metadata", metadata);
 
-    // 3. Create and attach accessory using Dynamic Object Field
+    // 3. Dynamic Object Fieldを使用してアクセサリーを作成・添付
     let accessory = Accessory {
         id: object::new(ctx),
         accessory_type,
@@ -496,24 +496,24 @@ entry fun mint_full_featured_nft(
     };
     dof::add(&mut nft.id, b"main_accessory", accessory);
 
-    // 4. Transfer the fully-featured NFT to the sender
+    // 4. フル機能のNFTを送信者に転送
     public_transfer(nft, ctx.sender());
 }
 
-/// Get the creation timestamp of an NFT
+/// NFTの作成タイムスタンプを取得
 ///
-/// Parameters:
-/// - nft: Reference to the NFT
+/// パラメータ:
+/// - nft: NFTへの参照
 ///
-/// Returns: Creation timestamp in milliseconds
+/// 戻り値: ミリ秒単位の作成タイムスタンプ
 public fun get_created_at(nft: &WorkshopNft): u64 {
     nft.created_at
 }
 
-// ===== Test-Only Functions =====
+// ===== テスト専用関数 =====
 
 #[test_only]
-/// Create a WORKSHOP_NFT for testing
+/// テスト用のWORKSHOP_NFTを作成
 public fun test_init(ctx: &mut TxContext) {
     init(WORKSHOP_NFT {}, ctx);
 }
