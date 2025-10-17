@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+    CLOCK_ID,
     getTxUrl,
     HAS_KNOWN_PACKAGE,
     MODULE_NAME,
@@ -116,6 +117,7 @@ export function MintModal({
                     tx.pure.string(formData.description),
                     tx.pure.string(formData.imageUrl),
                     tx.pure.u64(priceMist.toString()),
+                    tx.object(CLOCK_ID), // Clock オブジェクト
                 ],
             });
         } else {
