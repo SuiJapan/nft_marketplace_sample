@@ -43,7 +43,6 @@ use sui::dynamic_field as df;
 use sui::dynamic_object_field as dof;
 use sui::kiosk::{Kiosk, KioskOwnerCap};
 use sui::package;
-use sui::package::Publisher;
 use sui::transfer::{public_share_object, public_transfer};
 use sui::transfer_policy;
 
