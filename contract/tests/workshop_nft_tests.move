@@ -2,10 +2,9 @@
 module contract::workshop_nft_tests;
 
 use std::string;
-use sui::clock::{Self, Clock};
+use sui::clock;
 use sui::test_scenario::{Self as ts, Scenario};
 use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
-use sui::package::Publisher;
 use sui::transfer::{public_share_object, public_transfer};
 use sui::transfer_policy::TransferPolicy;
 use contract::workshop_nft::{Self, WorkshopNft};
@@ -32,17 +31,10 @@ fun test_mint_nft_success() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    // Initialize TransferPolicy via entry function
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Mint NFT
     ts::next_tx(&mut scenario, USER1);
     {
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b"A test NFT"),
@@ -70,16 +62,10 @@ fun test_mint_nft_empty_name() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Try to mint NFT with empty name
     ts::next_tx(&mut scenario, USER1);
     {
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b""),  // Empty name
             string::utf8(b"A test NFT"),
@@ -100,16 +86,10 @@ fun test_mint_nft_empty_description() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Try to mint NFT with empty description
     ts::next_tx(&mut scenario, USER1);
     {
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b""),  // Empty description
@@ -130,16 +110,10 @@ fun test_mint_nft_empty_url() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Try to mint NFT with empty URL
     ts::next_tx(&mut scenario, USER1);
     {
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
         workshop_nft::mint(
             string::utf8(b"Test NFT"),
             string::utf8(b"A test NFT"),
@@ -159,12 +133,6 @@ fun test_init_transfer_policy() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Verify TransferPolicy was created and shared by init()
     ts::next_tx(&mut scenario, ADMIN);
     {
@@ -181,12 +149,6 @@ fun test_mint_and_list() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Create Kiosk for USER1
     ts::next_tx(&mut scenario, USER1);
     {
@@ -200,7 +162,7 @@ fun test_mint_and_list() {
     {
         let mut kiosk = ts::take_shared<Kiosk>(&scenario);
         let kiosk_cap = ts::take_from_sender<KioskOwnerCap>(&scenario);
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
         workshop_nft::mint_and_list(
             &mut kiosk,
@@ -228,12 +190,6 @@ fun test_mint_and_list_zero_price() {
     let mut scenario = ts::begin(ADMIN);
     init_module(&mut scenario);
 
-    ts::next_tx(&mut scenario, ADMIN);
-    {
-        let publisher = ts::take_from_sender<Publisher>(&scenario);
-        workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
-    };
-
     // Create Kiosk for USER1
     ts::next_tx(&mut scenario, USER1);
     {
@@ -247,7 +203,7 @@ fun test_mint_and_list_zero_price() {
     {
         let mut kiosk = ts::take_shared<Kiosk>(&scenario);
         let kiosk_cap = ts::take_from_sender<KioskOwnerCap>(&scenario);
-        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
         workshop_nft::mint_and_list(
             &mut kiosk,
