@@ -7,6 +7,7 @@ import type { SuiClient } from "@mysten/sui/client";
 import type { Transaction } from "@mysten/sui/transactions";
 import type { KioskInfo } from "@/types";
 import {
+    CLOCK_ID,
     getDefaultItemType,
     MODULE_NAME,
     PACKAGE_ID,
@@ -88,6 +89,7 @@ export function mintNFT(
             tx.pure.string(name),
             tx.pure.string(description),
             tx.pure.string(imageUrl),
+            tx.object(CLOCK_ID), // Clock オブジェクト
         ],
     });
 }

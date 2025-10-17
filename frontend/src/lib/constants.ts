@@ -24,6 +24,9 @@ export const ALLOWED_PUBLISHERS = allowedPublishersRaw
 // MIST / SUI 変換定数
 export const MIST_PER_SUI = 1_000_000_000n;
 
+// Sui共有オブジェクト
+export const CLOCK_ID = "0x6"; // 共有Clockオブジェクト
+
 // ページネーション設定
 export const ITEMS_PER_PAGE = 20;
 
