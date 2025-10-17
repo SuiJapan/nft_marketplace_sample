@@ -48,13 +48,18 @@ fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
     // Claim the Publisher object
     let publisher = package::claim(otw, ctx);
 
-    // Create Display object for WorkshopNft
-    let mut display = display::new<WorkshopNft>(&publisher, ctx);
-
-    // Set display fields
-    display.add(b"name".to_string(), b"{name}".to_string());
-    display.add(b"description".to_string(), b"{description}".to_string());
-    display.add(b"image_url".to_string(), b"{url}".to_string());
+    // Create Display object for WorkshopNft with fields
+    let keys = vector[
+        b"name".to_string(),
+        b"description".to_string(),
+        b"image_url".to_string(),
+    ];
+    let values = vector[
+        b"{name}".to_string(),
+        b"{description}".to_string(),
+        b"{url}".to_string(),
+    ];
+    let mut display = display::new_with_fields<WorkshopNft>(&publisher, keys, values, ctx);
 
     // Update and freeze the display
     display.update_version();
