@@ -72,13 +72,19 @@ sui client call `
 ```bash
 export PACKAGE_ID=0x...  # デプロイしたパッケージID
 export CLOCK=0x6  # 共有Clockオブジェクト（固定）
+export TRANSFER_POLICY_ID=0x...  # デプロイ時に作成されたTransferPolicy ID（NFT購入に必要）
 ```
 
 **Windows (PowerShell):**
 ```powershell
 $env:PACKAGE_ID="0x..."  # デプロイしたパッケージID
 $env:CLOCK="0x6"  # 共有Clockオブジェクト（固定）
+$env:TRANSFER_POLICY_ID="0x..."  # デプロイ時に作成されたTransferPolicy ID（NFT購入に必要）
 ```
+
+**💡 ヒント:**
+- `TRANSFER_POLICY_ID`は、コントラクトデプロイ時のトランザクション結果で確認できます
+- `TransferPolicy`オブジェクトを探して、そのIDを設定してください
 
 ---
 
@@ -217,6 +223,75 @@ sui client call \
 sui client object $KIOSK_ID --json | jq '.content.fields'
 ```
 
+#### 🎯 実習4: 他の人のKioskからNFTを購入
+
+**学習ポイント:**
+
+Kioskの購入機能を使うことで、リストされているNFTを誰でも購入できます。
+
+**購入の流れ:**
+1. 購入したいNFTがリストされているKiosk IDを確認
+2. NFT IDと価格を確認
+3. `purchase_and_resolve`関数で購入とTransferPolicyの解決を同時実行
+4. NFTが自動的に購入者のウォレットに転送される
+
+**コマンド例:**
+
+```bash
+# 他の人のKioskからNFTを購入
+# 注意: 実際に購入するには、NFTの価格分のSUIが必要です
+
+# 例: 1 SUIで販売されているNFTを購入
+sui client call \
+  --package $PACKAGE_ID \
+  --module workshop_nft \
+  --function purchase_and_resolve \
+  --args <SELLER_KIOSK_ID> <NFT_ID> <TRANSFER_POLICY_ID> \
+  --gas-budget 10000000
+```
+
+**引数の説明:**
+- `<SELLER_KIOSK_ID>`: 購入したいNFTが出品されているKioskのID
+- `<NFT_ID>`: 購入したいNFTのID
+- `<TRANSFER_POLICY_ID>`: WorkshopNft用のTransferPolicy ID（デプロイ時に作成されたもの）
+
+**購入後の確認:**
+```bash
+# 自分のウォレットにNFTが転送されたことを確認
+sui client objects
+
+# NFTの詳細を確認
+sui client object <NFT_ID>
+```
+
+**💡 ヒント:**
+- 購入前に、Kioskの内容を確認して価格をチェックしましょう
+- 購入には、NFTの価格 + ガス代が必要です
+- `purchase_and_resolve`は、購入とTransferPolicyの解決を1トランザクションで実行します
+
+**TypeScript SDK での購入例:**
+```typescript
+import { TransactionBlock } from '@mysten/sui.js/transactions';
+
+const tx = new TransactionBlock();
+
+// 購入処理
+tx.moveCall({
+  target: `${PACKAGE_ID}::workshop_nft::purchase_and_resolve`,
+  arguments: [
+    tx.object(SELLER_KIOSK_ID),
+    tx.pure(NFT_ID, 'address'),
+    tx.object(TRANSFER_POLICY_ID),
+  ],
+});
+
+// トランザクションを実行
+const result = await client.signAndExecuteTransactionBlock({
+  signer: keypair,
+  transactionBlock: tx,
+});
+```
+
 #### 📊 ビジュアル図解
 
 ```
@@ -238,11 +313,36 @@ sui client object $KIOSK_ID --json | jq '.content.fields'
 │    ↓                        │
 │    NFT → Kiosk (price付き)  │
 ├─────────────────────────────┤
-│ 4. 購入（フロントエンド）   │
-│    kiosk::purchase()        │
+│ 4. 購入処理                 │
+│    purchase_and_resolve()   │
 │    ↓                        │
-│    NFT → 購入者             │
+│    a. Kioskから購入         │
+│    b. 代金を支払い          │
+│    c. TransferPolicy解決    │
+│    d. NFT → 購入者          │
 └─────────────────────────────┘
+
+購入フローの詳細:
+┌──────────────┐
+│  購入者      │
+└──────┬───────┘
+       │ 1. purchase_and_resolve() を呼び出し
+       ↓
+┌──────────────┐
+│  Kiosk       │
+├──────────────┤
+│ - NFT (price)│ 2. 価格チェック & NFT取り出し
+└──────┬───────┘
+       │ 3. 代金支払い（SUI）
+       ↓
+┌──────────────┐
+│TransferPolicy│ 4. TransferRequestを解決
+└──────┬───────┘
+       │ 5. 所有権転送を承認
+       ↓
+┌──────────────┐
+│  購入者      │ 6. NFTを受け取り
+└──────────────┘
 ```
 
 ---
@@ -634,6 +734,43 @@ sui client object $KIOSK_ID --json | jq '.data.content.fields'
 - [ ] 3つのNFTがKioskに追加された
 - [ ] 各NFTに正しい価格が設定された
 - [ ] Kioskオブジェクトで確認できた
+
+**📝 発展課題: 他の参加者のNFTを購入してみよう**
+
+ワークショップの参加者同士で、お互いのKioskから購入することができます。
+
+```bash
+# 1. 購入したい参加者のKiosk IDとNFT IDを教えてもらう
+# 例:
+# SELLER_KIOSK_ID=0xabc...
+# TARGET_NFT_ID=0xdef...
+
+# 2. そのKioskの内容を確認（価格をチェック）
+sui client object <SELLER_KIOSK_ID> --json | jq '.data.content.fields'
+
+# 3. 購入を実行
+sui client call \
+  --package $PACKAGE_ID \
+  --module workshop_nft \
+  --function purchase_and_resolve \
+  --args <SELLER_KIOSK_ID> <TARGET_NFT_ID> <TRANSFER_POLICY_ID> \
+  --gas-budget 10000000
+
+# 4. 購入したNFTを確認
+sui client objects
+sui client object <TARGET_NFT_ID>
+```
+
+**💡 ヒント:**
+- TRANSFER_POLICY_IDは、パッケージをデプロイした時に作成されたものを使用します
+- 環境変数として設定しておくと便利です: `export TRANSFER_POLICY_ID=0x...`
+- 購入には、NFTの価格分のSUIが必要です（残高を確認: `sui client gas`）
+- 複数人でワークショップを行う場合は、お互いのKiosk IDを共有しましょう
+
+**発展チェックポイント:**
+- [ ] 他の参加者のKioskを確認できた
+- [ ] 購入に必要な情報（Kiosk ID、NFT ID、価格）を取得できた
+- [ ] 実際にNFTを購入し、所有権が移転された
 
 ---
 
