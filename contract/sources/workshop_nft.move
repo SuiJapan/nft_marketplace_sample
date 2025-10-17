@@ -44,6 +44,7 @@ public struct WorkshopNft has key, store {
 /// Initialize the module
 /// - Create and configure Display<WorkshopNft> for frontend metadata display
 /// - Transfer Publisher to the deployer
+#[allow(lint(share_owned))]
 fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
     // Claim the Publisher object
     let publisher = package::claim(otw, ctx);
@@ -63,6 +64,11 @@ fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
 
     // Update and freeze the display
     display.update_version();
+
+    // Create and share TransferPolicy so Kiosk purchases work out of the box
+    let (policy, policy_cap) = transfer_policy::new<WorkshopNft>(&publisher, ctx);
+    transfer::public_share_object(policy);
+    transfer::public_transfer(policy_cap, ctx.sender());
 
     // Transfer Display and Publisher to the deployer
     transfer::public_transfer(display, ctx.sender());
@@ -121,38 +127,6 @@ entry fun mint(
 ) {
     let nft = mint_nft(name, description, url, ctx);
     transfer::public_transfer(nft, ctx.sender());
-}
-
-// ===== TransferPolicy Functions =====
-
-/// Initialize TransferPolicy for WorkshopNft (entry function)
-///
-/// This function must be called once after deployment by the module deployer
-/// to enable trading of WorkshopNft on Kiosk.
-///
-/// Parameters:
-/// - publisher: Publisher object (proves module ownership)
-/// - ctx: Transaction context
-///
-/// Effects:
-/// - Creates a TransferPolicy<WorkshopNft> with no rules and shares it
-/// - Transfers TransferPolicyCap to the caller for future policy updates
-///
-/// Note: The lint warning is suppressed because we create and share the policy
-/// in the same transaction, which is safe and intentional.
-#[allow(lint(share_owned))]
-entry fun init_transfer_policy(
-    publisher: &package::Publisher,
-    ctx: &mut TxContext
-) {
-    // Create transfer policy with no rules (allows free transfers)
-    let (policy, policy_cap) = transfer_policy::new<WorkshopNft>(publisher, ctx);
-
-    // Share the policy for public use
-    transfer::public_share_object(policy);
-
-    // Transfer the policy cap to the caller for future policy updates
-    transfer::public_transfer(policy_cap, ctx.sender());
 }
 
 // ===== Kiosk Integration Functions =====

@@ -4,7 +4,6 @@ module contract::workshop_nft_tests {
     use sui::test_scenario::{Self as ts, Scenario};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use sui::transfer_policy::TransferPolicy;
-    use sui::package;
     use contract::workshop_nft::{Self, WorkshopNft};
 
     // Test addresses
@@ -114,23 +113,12 @@ module contract::workshop_nft_tests {
     }
 
     #[test]
-    /// Test: Initialize TransferPolicy
+    /// Test: TransferPolicy is initialized during module init
     fun test_init_transfer_policy() {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
-        // Get Publisher
-        ts::next_tx(&mut scenario, ADMIN);
-        {
-            let publisher = ts::take_from_sender<package::Publisher>(&scenario);
-
-            // Initialize TransferPolicy
-            workshop_nft::init_transfer_policy(&publisher, ts::ctx(&mut scenario));
-
-            ts::return_to_sender(&scenario, publisher);
-        };
-
-        // Verify TransferPolicy was created and shared
+        // Verify TransferPolicy was created and shared by init()
         ts::next_tx(&mut scenario, ADMIN);
         {
             let _policy = ts::take_shared<TransferPolicy<WorkshopNft>>(&scenario);
