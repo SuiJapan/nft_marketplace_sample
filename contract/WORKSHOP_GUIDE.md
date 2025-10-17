@@ -6,11 +6,61 @@
 
 ## 📋 目次
 
-1. [第1部: 基礎編](#第1部-基礎編30分)
-2. [第2部: 応用編](#第2部-応用編40分)
-3. [第3部: 統合デモ](#第3部-統合デモ20分)
-4. [トラブルシューティング](#トラブルシューティング)
-5. [参考資料](#参考資料)
+1. [Windows対応について](#windows対応について)
+2. [事前準備](#事前準備)
+3. [第1部: 基礎編](#第1部-基礎編30分)
+4. [第2部: 応用編](#第2部-応用編40分)
+5. [第3部: 統合デモ](#第3部-統合デモ20分)
+6. [トラブルシューティング](#トラブルシューティング)
+7. [参考資料](#参考資料)
+
+---
+
+## 💻 Windows (PowerShell) 対応について
+
+このガイドのコマンドはmacOS/Linux向けに記載されていますが、Windows PowerShellでは以下のルールで実行できます。
+
+### 環境変数の違い
+
+| OS | 環境変数の設定 | 環境変数の参照 |
+|----|---------------|---------------|
+| **macOS/Linux** | `export VAR=value` | `$VAR` |
+| **Windows (PowerShell)** | `$env:VAR="value"` | `$env:VAR` |
+
+### 複数行コマンドの違い
+
+| OS | 行継続文字 |
+|----|-----------|
+| **macOS/Linux** | `\` (バックスラッシュ) |
+| **Windows (PowerShell)** | `` ` `` (バッククォート) |
+
+### 実習コマンドの変換例
+
+**macOS/Linux:**
+```bash
+sui client call \
+  --package $PACKAGE_ID \
+  --module workshop_nft \
+  --function mint \
+  --args "My NFT" "Description" "https://example.com/nft.png" $CLOCK \
+  --gas-budget 10000000
+```
+
+**Windows (PowerShell):**
+```powershell
+sui client call `
+  --package $env:PACKAGE_ID `
+  --module workshop_nft `
+  --function mint `
+  --args "My NFT" "Description" "https://example.com/nft.png" $env:CLOCK `
+  --gas-budget 10000000
+```
+
+**💡 変換ルール:**
+- `\` → `` ` `` (バックスラッシュをバッククォートに)
+- `$VAR` → `$env:VAR` (環境変数に`$env:`を追加)
+
+以降のすべてのコマンドは、この変換ルールに従ってPowerShellで実行してください
 
 ---
 
@@ -18,10 +68,16 @@
 
 ### 環境変数の設定
 
+**macOS / Linux:**
 ```bash
-# デプロイ結果を環境変数に設定
 export PACKAGE_ID=0x...  # デプロイしたパッケージID
 export CLOCK=0x6  # 共有Clockオブジェクト（固定）
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:PACKAGE_ID="0x..."  # デプロイしたパッケージID
+$env:CLOCK="0x6"  # 共有Clockオブジェクト（固定）
 ```
 
 ---
