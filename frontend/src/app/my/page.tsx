@@ -4,28 +4,28 @@
  * Kiosk管理ページ
  */
 
-import { useEffect, useState } from "react";
 import {
     useCurrentAccount,
-    useSuiClient,
     useSignAndExecuteTransaction,
+    useSuiClient,
 } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
+import { Loader2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Header } from "@/components/header";
+import { ListModal } from "@/components/list-modal";
+import { MintModal } from "@/components/mint-modal";
+import { NFTCard } from "@/components/nft-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NFTCard } from "@/components/nft-card";
-import { MintModal } from "@/components/mint-modal";
-import { ListModal } from "@/components/list-modal";
+import { getTxUrl } from "@/lib/constants";
 import {
-    findUserKiosk,
     createKioskTransaction,
     delistNFT,
+    findUserKiosk,
 } from "@/lib/kiosk-helpers";
 import { shortenAddress } from "@/lib/utils";
-import { getTxUrl } from "@/lib/constants";
-import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
 import type { KioskInfo, MyNFT } from "@/types";
 
 export default function MyKioskPage() {
@@ -35,7 +35,7 @@ export default function MyKioskPage() {
 
     const [kioskInfo, setKioskInfo] = useState<KioskInfo | null>(null);
     const [loading, setLoading] = useState(true);
-    const [myNFTs, setMyNFTs] = useState<MyNFT[]>([]);
+    const [myNFTs, _setMyNFTs] = useState<MyNFT[]>([]);
     const [mintModalOpen, setMintModalOpen] = useState(false);
     const [listModalOpen, setListModalOpen] = useState(false);
     const [selectedNFT, setSelectedNFT] = useState<MyNFT | null>(null);
@@ -116,7 +116,7 @@ export default function MyKioskPage() {
         setDelistingId(nft.objectId);
 
         const tx = new Transaction();
-        delistNFT(tx, kioskInfo.kioskId, kioskInfo.capId, nft.objectId);
+        delistNFT(suiClient, tx, kioskInfo.kioskId, nft.objectId);
 
         signAndExecute(
             {
@@ -355,7 +355,6 @@ export default function MyKioskPage() {
                             open={listModalOpen}
                             onOpenChange={setListModalOpen}
                             kioskId={kioskInfo.kioskId}
-                            capId={kioskInfo.capId}
                             itemId={selectedNFT.objectId}
                             display={selectedNFT.display}
                             onSuccess={() => {

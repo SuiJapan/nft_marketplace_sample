@@ -4,6 +4,12 @@
  * NFT購入モーダル
  */
 
+import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -12,16 +18,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { Transaction } from "@mysten/sui/transactions";
-import { purchaseNFT } from "@/lib/kiosk-helpers";
-import { mistToSui, formatNumber } from "@/lib/utils";
 import { getTxUrl } from "@/lib/constants";
-import { Loader2 } from "lucide-react";
+import { purchaseNFT } from "@/lib/kiosk-helpers";
+import { formatNumber, mistToSui } from "@/lib/utils";
 import type { ListedNFT } from "@/types";
-import Image from "next/image";
 
 interface PurchaseModalProps {
     open: boolean;
@@ -38,13 +38,21 @@ export function PurchaseModal({
 }: PurchaseModalProps) {
     const { mutate: signAndExecute, isPending } =
         useSignAndExecuteTransaction();
+    const suiClient = useSuiClient();
 
     if (!nft) return null;
 
     const handlePurchase = () => {
         const priceBigInt = BigInt(nft.price);
         const tx = new Transaction();
-        purchaseNFT(tx, nft.kioskId, nft.itemId, priceBigInt);
+        purchaseNFT(
+            suiClient,
+            tx,
+            nft.kioskId,
+            nft.itemId,
+            priceBigInt,
+            nft.itemType,
+        );
 
         signAndExecute(
             {

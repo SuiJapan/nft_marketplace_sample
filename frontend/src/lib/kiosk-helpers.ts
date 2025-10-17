@@ -2,11 +2,16 @@
  * Kiosk操作のヘルパー関数
  */
 
-import type { SuiClient } from "@mysten/sui/client";
-import { Transaction } from "@mysten/sui/transactions";
 import { KioskClient, KioskTransaction, Network } from "@mysten/kiosk";
+import type { SuiClient } from "@mysten/sui/client";
+import type { Transaction } from "@mysten/sui/transactions";
 import type { KioskInfo } from "@/types";
-import { PACKAGE_ID, SUI_NETWORK } from "./constants";
+import {
+    getDefaultItemType,
+    MODULE_NAME,
+    PACKAGE_ID,
+    SUI_NETWORK,
+} from "./constants";
 
 /**
  * KioskClientのインスタンスを取得
@@ -53,40 +58,33 @@ export async function findUserKiosk(
  * 新しいKioskを作成
  */
 export function createKioskTransaction(tx: Transaction, sender: string): void {
-    // Kioskを作成（0x2::kiosk::default）
+    // Kiosk を新規作成 → 共有化 → Cap を sender へ転送
+    // 注意: 実際の Sui 標準APIは SDK でラップされることが多い。ここでは PTB での最低限の流れを記述。
     const [kiosk, kioskOwnerCap] = tx.moveCall({
-        target: "0x2::kiosk::default",
+        target: "0x2::kiosk::new",
         arguments: [],
     });
-
-    // Kioskを共有オブジェクトにする
     tx.moveCall({
         target: "0x2::transfer::public_share_object",
         arguments: [kiosk],
         typeArguments: ["0x2::kiosk::Kiosk"],
     });
-
-    // KioskOwnerCapをsenderに転送
     tx.transferObjects([kioskOwnerCap], sender);
 }
 
 /**
- * NFTをMintしてKioskに配置
- * コントラクトのmint_and_place関数を呼び出す
+ * NFTをMint（ウォレットに発行）
+ * コントラクトの entry fun mint を呼び出す
  */
-export function mintAndPlaceNFT(
+export function mintNFT(
     tx: Transaction,
-    kioskId: string,
-    capId: string,
     name: string,
     description: string,
     imageUrl: string,
 ): void {
     tx.moveCall({
-        target: `${PACKAGE_ID}::workshop_nft::mint_and_place`,
+        target: `${PACKAGE_ID}::${MODULE_NAME}::mint`,
         arguments: [
-            tx.object(kioskId),
-            tx.object(capId),
             tx.pure.string(name),
             tx.pure.string(description),
             tx.pure.string(imageUrl),
@@ -98,19 +96,17 @@ export function mintAndPlaceNFT(
  * NFTを出品（place and list）
  */
 export function listNFT(
+    client: SuiClient,
     tx: Transaction,
-    kioskId: string,
-    capId: string,
+    _kioskId: string,
     itemId: string,
     price: bigint,
+    itemType?: string,
 ): void {
-    const kioskTx = new KioskTransaction({
-        transaction: tx,
-        kioskClient: undefined as any,
-    });
-
+    const kioskClient = getKioskClient(client);
+    const kioskTx = new KioskTransaction({ transaction: tx, kioskClient });
     kioskTx.placeAndList({
-        itemType: `${PACKAGE_ID}::workshop_nft::WorkshopNft`,
+        itemType: itemType || getDefaultItemType(),
         item: tx.object(itemId),
         price: price.toString(),
     });
@@ -120,18 +116,17 @@ export function listNFT(
  * NFTを購入（purchase and resolve）
  */
 export function purchaseNFT(
+    client: SuiClient,
     tx: Transaction,
     kioskId: string,
     itemId: string,
     price: bigint,
+    itemType: string,
 ): void {
-    const kioskTx = new KioskTransaction({
-        transaction: tx,
-        kioskClient: undefined as any,
-    });
-
+    const kioskClient = getKioskClient(client);
+    const kioskTx = new KioskTransaction({ transaction: tx, kioskClient });
     kioskTx.purchaseAndResolve({
-        itemType: `${PACKAGE_ID}::workshop_nft::WorkshopNft`,
+        itemType,
         itemId,
         price: price.toString(),
         sellerKiosk: kioskId,
@@ -142,18 +137,16 @@ export function purchaseNFT(
  * 出品を取り下げ（delist）
  */
 export function delistNFT(
+    client: SuiClient,
     tx: Transaction,
-    kioskId: string,
-    capId: string,
+    _kioskId: string,
     itemId: string,
+    itemType?: string,
 ): void {
-    const kioskTx = new KioskTransaction({
-        transaction: tx,
-        kioskClient: undefined as any,
-    });
-
+    const kioskClient = getKioskClient(client);
+    const kioskTx = new KioskTransaction({ transaction: tx, kioskClient });
     kioskTx.delist({
-        itemType: `${PACKAGE_ID}::workshop_nft::WorkshopNft`,
+        itemType: itemType || getDefaultItemType(),
         itemId,
     });
 }

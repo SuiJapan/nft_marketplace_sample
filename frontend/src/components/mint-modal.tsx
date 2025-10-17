@@ -4,7 +4,12 @@
  * NFT Mint モーダル
  */
 
+import { useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -13,21 +18,22 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
-import { Transaction } from "@mysten/sui/transactions";
-import { mintAndPlaceNFT } from "@/lib/kiosk-helpers";
-import { getTxUrl } from "@/lib/constants";
-import { Loader2 } from "lucide-react";
+import {
+    getTxUrl,
+    HAS_KNOWN_PACKAGE,
+    MODULE_NAME,
+    PACKAGE_ID,
+} from "@/lib/constants";
+import { mintNFT } from "@/lib/kiosk-helpers";
+import { suiToMist } from "@/lib/utils";
 
 interface MintModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    kioskId: string;
-    capId: string;
+    kioskId?: string;
+    capId?: string;
     onSuccess?: () => void;
 }
 
@@ -38,7 +44,6 @@ export function MintModal({
     capId,
     onSuccess,
 }: MintModalProps) {
-    const suiClient = useSuiClient();
     const { mutate: signAndExecute, isPending } =
         useSignAndExecuteTransaction();
 
@@ -46,6 +51,7 @@ export function MintModal({
         name: "",
         description: "",
         imageUrl: "",
+        price: "",
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,6 +78,11 @@ export function MintModal({
             newErrors.imageUrl = "Image URL must start with https://";
         }
 
+        const priceNum = Number.parseFloat(formData.price || "0");
+        if (formData.price && (Number.isNaN(priceNum) || priceNum <= 0)) {
+            newErrors.price = "Price must be a positive number when provided";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -79,15 +90,38 @@ export function MintModal({
     const handleMint = () => {
         if (!validate()) return;
 
+        if (!HAS_KNOWN_PACKAGE) {
+            toast.error(
+                "Package ID is not configured. Please set NEXT_PUBLIC_PACKAGE_ID before minting.",
+            );
+            return;
+        }
+
         const tx = new Transaction();
-        mintAndPlaceNFT(
-            tx,
-            kioskId,
-            capId,
-            formData.name,
-            formData.description,
-            formData.imageUrl,
-        );
+        const withKioskListing =
+            !!kioskId &&
+            !!capId &&
+            !!formData.price &&
+            Number(formData.price) > 0;
+
+        if (withKioskListing) {
+            // コントラクトの mint_and_list を使用して一括で出品
+            const priceMist = suiToMist(formData.price);
+            tx.moveCall({
+                target: `${PACKAGE_ID}::${MODULE_NAME}::mint_and_list`,
+                arguments: [
+                    tx.object(kioskId!),
+                    tx.object(capId!),
+                    tx.pure.string(formData.name),
+                    tx.pure.string(formData.description),
+                    tx.pure.string(formData.imageUrl),
+                    tx.pure.u64(priceMist.toString()),
+                ],
+            });
+        } else {
+            // 通常の mint のみ
+            mintNFT(tx, formData.name, formData.description, formData.imageUrl);
+        }
 
         signAndExecute(
             {
@@ -107,7 +141,12 @@ export function MintModal({
                             </a>
                         ),
                     });
-                    setFormData({ name: "", description: "", imageUrl: "" });
+                    setFormData({
+                        name: "",
+                        description: "",
+                        imageUrl: "",
+                        price: "",
+                    });
                     onOpenChange(false);
                     onSuccess?.();
                 },
@@ -190,6 +229,32 @@ export function MintModal({
                         {errors.imageUrl && (
                             <p className="text-sm text-destructive mt-1">
                                 {errors.imageUrl}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Optional price for immediate listing */}
+                    <div>
+                        <Label htmlFor="price">
+                            List Price (SUI, optional)
+                        </Label>
+                        <Input
+                            id="price"
+                            type="number"
+                            step="0.000000001"
+                            min="0"
+                            value={formData.price}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    price: e.target.value,
+                                })
+                            }
+                            placeholder="0.1"
+                        />
+                        {errors.price && (
+                            <p className="text-sm text-destructive mt-1">
+                                {errors.price}
                             </p>
                         )}
                     </div>

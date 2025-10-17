@@ -15,6 +15,10 @@ export interface ListedNFT {
     display: NFTDisplay;
     owner: string;
     txDigest: string;
+    itemType: string;
+    packageId: string;
+    moduleName: string;
+    structName: string;
 }
 
 export interface MyNFT {
@@ -23,6 +27,10 @@ export interface MyNFT {
     display: NFTDisplay;
     isListed: boolean;
     price?: string; // 出品中の場合のみ
+    itemType?: string;
+    packageId?: string;
+    moduleName?: string;
+    structName?: string;
 }
 
 export interface KioskInfo {

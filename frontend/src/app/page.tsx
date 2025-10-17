@@ -4,13 +4,19 @@
  * 出品一覧ページ（ホーム）
  */
 
-import { useState, useEffect } from "react";
+import { useSuiClient } from "@mysten/dapp-kit";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/header";
 import { NFTCard } from "@/components/nft-card";
 import { PurchaseModal } from "@/components/purchase-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import {
+    fetchActiveListings,
+    startPollingListings,
+    subscribeActiveListings,
+} from "@/lib/market-events";
 import type { ListedNFT } from "@/types";
 
 export default function Home() {
@@ -18,17 +24,18 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [selectedNFT, setSelectedNFT] = useState<ListedNFT | null>(null);
     const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+    const suiClient = useSuiClient();
 
-    // TODO: イベント取得ロジックを実装
+    // イベント集約に基づく出品一覧の取得 + リアルタイム購読 + ポーリング
     useEffect(() => {
-        // デモ用のダミーデータ
-        const loadListings = async () => {
+        let unsubscribe: (() => void) | null = null;
+        let stopPolling: (() => void) | null = null;
+
+        const load = async () => {
             setLoading(true);
             try {
-                // ここでItemListedイベントを取得
-                // 現在はダミーデータ
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                setListings([]);
+                const data = await fetchActiveListings(suiClient);
+                setListings(data);
             } catch (error) {
                 console.error("Error loading listings:", error);
             } finally {
@@ -36,8 +43,23 @@ export default function Home() {
             }
         };
 
-        loadListings();
-    }, []);
+        load();
+
+        // リアルタイム購読（イベント受信で再読込）
+        try {
+            unsubscribe = subscribeActiveListings(suiClient, load);
+        } catch {
+            unsubscribe = null;
+        }
+
+        // フォールバックのポーリング
+        stopPolling = startPollingListings(suiClient, load);
+
+        return () => {
+            unsubscribe?.();
+            stopPolling?.();
+        };
+    }, [suiClient]);
 
     const handlePurchaseClick = (nft: ListedNFT) => {
         setSelectedNFT(nft);

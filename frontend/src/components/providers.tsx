@@ -4,12 +4,12 @@
  * アプリケーション全体のプロバイダ
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "@/components/ui/sonner";
-import { networkConfig, defaultNetwork } from "@/lib/sui-client";
 import { useState } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { defaultNetwork, networkConfig } from "@/lib/sui-client";
 import "@mysten/dapp-kit/dist/index.css";
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -2,18 +2,18 @@
  * NFT表示カード（汎用）
  */
 
+import { ExternalLink } from "lucide-react";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+
 import {
     Card,
     CardContent,
     CardFooter,
     CardHeader,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { mistToSui, formatNumber } from "@/lib/utils";
-import { ExternalLink } from "lucide-react";
 import { getObjectUrl } from "@/lib/constants";
+import { formatNumber, mistToSui } from "@/lib/utils";
 import type { NFTDisplay } from "@/types";
 
 interface NFTCardProps {

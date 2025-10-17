@@ -11,6 +11,15 @@ export const PACKAGE_ID =
     process.env.NEXT_PUBLIC_PACKAGE_ID ||
     "0x0000000000000000000000000000000000000000000000000000000000000000";
 export const POLICY_ID = process.env.NEXT_PUBLIC_POLICY_ID;
+export const MODULE_NAME = process.env.NEXT_PUBLIC_TYPE_MOD || "workshop_nft";
+export const STRUCT_NAME = process.env.NEXT_PUBLIC_TYPE_STRUCT || "WorkshopNft";
+const allowedPublishersRaw = process.env.NEXT_PUBLIC_ALLOWED_PUBLISHERS || "";
+export const ALLOWED_PUBLISHERS = allowedPublishersRaw
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+    .map((value) => (value.startsWith("0x") ? value : `0x${value}`))
+    .map((value) => value.toLowerCase());
 
 // MIST / SUI 変換定数
 export const MIST_PER_SUI = 1_000_000_000n;
@@ -41,4 +50,17 @@ export function getTxUrl(digest: string): string {
  */
 export function getObjectUrl(objectId: string): string {
     return `${EXPLORER_URL[SUI_NETWORK]}/object/${objectId}`;
+}
+
+const PACKAGE_REGEX = /^0x[a-fA-F0-9]{64}$/;
+
+export function isValidPackageId(id: string): boolean {
+    if (!PACKAGE_REGEX.test(id)) return false;
+    return !/^0x0+$/.test(id.toLowerCase());
+}
+
+export const HAS_KNOWN_PACKAGE = isValidPackageId(PACKAGE_ID);
+
+export function getDefaultItemType(): string {
+    return `${PACKAGE_ID}::${MODULE_NAME}::${STRUCT_NAME}`;
 }

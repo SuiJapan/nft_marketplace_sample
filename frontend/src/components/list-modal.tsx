@@ -4,7 +4,12 @@
  * NFT出品モーダル
  */
 
+import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -13,23 +18,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { Transaction } from "@mysten/sui/transactions";
-import { listNFT } from "@/lib/kiosk-helpers";
-import { suiToMist, mistToSui, formatNumber } from "@/lib/utils";
 import { getTxUrl } from "@/lib/constants";
-import { Loader2 } from "lucide-react";
+import { listNFT } from "@/lib/kiosk-helpers";
+import { formatNumber, suiToMist } from "@/lib/utils";
 import type { NFTDisplay } from "@/types";
 
 interface ListModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     kioskId: string;
-    capId: string;
     itemId: string;
     display: NFTDisplay;
     onSuccess?: () => void;
@@ -39,13 +38,13 @@ export function ListModal({
     open,
     onOpenChange,
     kioskId,
-    capId,
     itemId,
     display,
     onSuccess,
 }: ListModalProps) {
     const { mutate: signAndExecute, isPending } =
         useSignAndExecuteTransaction();
+    const suiClient = useSuiClient();
     const [price, setPrice] = useState("");
     const [error, setError] = useState("");
 
@@ -76,7 +75,7 @@ export function ListModal({
 
         const priceMist = suiToMist(price);
         const tx = new Transaction();
-        listNFT(tx, kioskId, capId, itemId, priceMist);
+        listNFT(suiClient, tx, kioskId, itemId, priceMist);
 
         signAndExecute(
             {
