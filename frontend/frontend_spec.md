@@ -1,55 +1,106 @@
 # 要件定義（フロントエンド：Next.js / `frontend/`）
 
 ## 目的
-- ユーザーが GUI で次を行える：  
-  ① Kiosk 作成、② NFT の mint（自分の Kiosk に入る）、③ 任意価格で出品（list）、④ 一覧から購入、⑤ 取り下げ（delist）。
+- GUI で次を行える：
+  ① Kiosk 作成、② NFT の mint（Kiosk に入れる）、③ 任意価格で出品（list）、
+  ④ 一覧から購入、⑤ 取り下げ（delist）。
+- UI は **shadcn/ui** を用い、モダンでアクセシブル、ダークモード対応。
 
 ## 技術スタック
 - Next.js 14+（App Router）, React 18, TypeScript, Node 20+
-- **Sui dApp Kit**（`SuiClientProvider`, `WalletProvider` など）:contentReference[oaicite:5]{index=5}
-- **@mysten/sui**（`SuiClient` による JSON-RPC: `queryEvents`, `getObject`(showDisplay) 等）:contentReference[oaicite:6]{index=6}
-- **@mysten/kiosk**（`KioskClient`, `KioskTransaction`: `create`, `placeAndList`, `purchaseAndResolve`, `delist` 等）:contentReference[oaicite:7]{index=7}
+- UI：**shadcn/ui + Tailwind CSS**（ダークモード／A11y／レスポンシブ）
+- Sui：**@mysten/dapp-kit**, **@mysten/sui**, **@mysten/kiosk**
 
-## 主要画面
-- `/` 出品一覧（表示・購入）  
-- `/my` 自分の Kiosk と出品管理（Mint→place, List, Delist）
+## ディレクトリ
+```
 
-## ユースケース別フロー
-1) **Kiosk 作成**  
-   - 既存探索: `KioskClient.getOwnedKiosks({ address })`。  
-   - 無ければ作成: `KioskTransaction.create()` → `shareAndTransferCap(address)`（同一PTBで自動作成）。:contentReference[oaicite:8]{index=8}
+frontend/
+app/
+components/
+ui/                # shadcn のコンポーネント
+kiosk/             # Kiosk用UI（カード/モーダル/トースト）
+lib/
+sui/client.ts      # SuiClient 初期化
+sui/kiosk.ts       # KioskClient/KioskTransaction ユーティリティ
+format.ts          # MIST<->SUI 変換, bigint utils
+(api/)               # 必要なら /api/listings など（App RouterのRoute Handler）
 
-2) **NFT を mint（Kiosk に入る）**  
-   - 方式A: コントラクトの `entry mint_and_place(kiosk, cap, ...)` を呼ぶ（既存 Kiosk/Cap 利用）。  
-   - 方式B: `entry mint_and_place_autocreate(...)` を直接呼ぶ（ID入手不要・毎回新規になる点に注意）。  
-   - 成功後、`ItemListed` ではなく **place イベントは任意**のため、Kiosk 中身の再取得で反映。
+```
 
-3) **任意価格で出品（list）**  
-   - `KioskTransaction.placeAndList({ itemId, kiosk, cap, price })` を使用（MIST 単位）。Kiosk 標準の `list`/`place_and_list` を底で利用。:contentReference[oaicite:9]{index=9}  
-   - 成功後、`ItemListed` イベントで UI 更新。:contentReference[oaicite:10]{index=10}
+## デザイン要件（shadcn / UX）
+- **スタイル**：余白広め、カード型レイアウト、スケルトン/スピナーでローディング表示、トーストで結果通知。
+- **主要コンポーネント**：Card, Button, Input, Dialog/Sheet, Select, Tabs, Badge, Skeleton, Toast, Pagination.
+- **配色/テーマ**：ダークモード対応（`class` strategy）。ブランド色のトークン定義。
+- **アクセシビリティ**：キーボード操作、ARIA属性、コントラスト確保。
+- **インストール要件**：
+  - Tailwind 設定済み（`tailwind.config`/`globals.css`）。
+  - shadcn 初期化済み（`components.json`）＋必要なUIを `npx shadcn add card button input dialog ...` で導入。
+- **受け入れ基準**：
+  - 主要画面で CLS/LCP を阻害しない（Skeleton で初期レンダリング最適化）。
+  - モバイル（sm）〜デスクトップ（lg）で崩れない。
 
-4) **一覧から購入**  
-   - 一覧はイベント駆動：`queryEvents` で `MoveEventType = 0x2::kiosk::ItemListed<...WorkshopNft>` を取得・ページング。:contentReference[oaicite:11]{index=11}  
-   - 購入は `KioskTransaction.purchaseAndResolve({ itemId, sellerKiosk, price })` を使用（内部で `purchase` → `confirm_request` を一括）。:contentReference[oaicite:12]{index=12}  
-   - 成功後、`ItemPurchased` で UI 更新。:contentReference[oaicite:13]{index=13}
+## 画面
+- `/` 出品一覧（検索／並び替え／購入モーダル）
+- `/my` 自分の Kiosk / 出品管理（Mint→place / List / Delist）
 
-5) **出品取り下げ（delist）**  
-   - `KioskTransaction.delist({ itemId })`（または `kiosk::delist` 呼び出し）で取り下げ。  
-   - 成功後、`ItemDelisted` で UI 更新。:contentReference[oaicite:14]{index=14}
+## Sui SDK 使い方（実装メモ）
+> Claude はここを参考にコード化すること。
 
-## データ取得・同期
-- 初回：`SuiClient.queryEvents` で `ItemListed<...WorkshopNft>` を降順・cursor 付きで取得。:contentReference[oaicite:15]{index=15}
-- リアルタイム：`suix_subscribeEvent`（WS）で購読を試み、**不安定時はポーリングにフォールバック**（公式が推奨）。:contentReference[oaicite:16]{index=16}
-- 表示メタ：`getObject({ showDisplay: true })` で Display を解決（name/image_url 等）。:contentReference[oaicite:17]{index=17}
-- 価格表示：内部は **MIST (u64)**、UI は SUI に換算（1 SUI = 10^9 MIST）。
+### 1) プロバイダとネットワーク
+- `SuiClientProvider` と `WalletProvider` をアプリルートに配置。
+- `createNetworkConfig()` に `getFullnodeUrl('testnet' | 'mainnet')` を与え、ネットワーク切替を提供。
+- 受け入れ基準：ネットワーク不一致時は警告バナー。
+
+### 2) SuiClient（JSON-RPC）・基本クエリ
+- **イベント取得**（一覧のデータソース）：
+  - `client.queryEvents({ query: { MoveEventType: '0x2::kiosk::ItemListed<PACKAGE::workshop_nft::WorkshopNft>' }, order: 'descending', limit, cursor })`
+  - 直近 N 件をページングで取得。重複は txDigest + itemId で排除。
+- **オブジェクト表示メタ**（カード描画用）：
+  - `client.getObject({ id: objectId, options: { showDisplay: true } })` → `display.data` を使用（name, image_url 等）。
+- **同期戦略**：まずポーリング（`queryEvents`）、可能なら WS で `suix_subscribeEvent` を併用。WS失敗時は自動フォールバック。
+
+### 3) dApp Kit（署名・実行）
+- `useCurrentAccount()` でアドレス取得。
+- `useSignAndExecuteTransaction()` or `useSignAndExecuteTransactionBlock()` で PTB を署名・実行。
+- 受け入れ基準：署名ダイアログ、実行中スピナー、成功/失敗トースト、Txリンク表示。
+
+### 4) Kiosk SDK（高レベルTxビルダー）
+- `KioskClient.getOwnedKiosks({ address })` で既存の Kiosk/Cap を探索。
+- 無ければ **同一PTB** で `new KioskTransaction(...).create().shareAndTransferCap(address)` により「サイレント作成」。
+- **出品（place+list）**：
+  - `KioskTransaction.placeAndList({ itemId, price, ... })` で MIST 価格を設定。
+- **購入**：
+  - `KioskTransaction.purchaseAndResolve({ itemId, sellerKiosk, price })` で、`purchase` → `TransferPolicy` の `confirm_request` まで一括。
+  - 決済前に在庫/価格の再確認（`getObject` や `kioskClient.getKioskContents`）。
+- **取り下げ**：
+  - `KioskTransaction.delist({ itemId })`。
+- 受け入れ基準：各Tx成功後に `ItemListed` / `ItemPurchased` / `ItemDelisted` を反映して一覧更新。
+
+### 5) ミント→Kioskに入れる（コントラクト連携）
+- 方式A：既存Kiosk/Cap を引数に **`entry mint_and_place(kiosk, cap, ...)`** を呼ぶ。
+- 方式B：**`entry mint_and_place_autocreate(...)`** を呼び、内部で Kiosk 作成→place 済み（毎回新規Kioskになる点に注意）。
+- 受け入れ基準：ミント完了後、ユーザーの Kiosk コンテンツに NFT が存在する。
+
+### 6) 金額・ユーティリティ
+- 価格は **MIST（u64, bigint）** で保持／送信。UI は SUI で表示（`1 SUI = 10^9 MIST`）。
+- `formatMist(mist): string`、`toMist(sui: string): bigint` を用意し、フォーム入力は SUI 小数→MIST bigint に変換。
+- 購入直前の「最終価格」と在庫を必ず再チェック。
+
+## API（任意の最小構成）
+- `/api/listings`：`queryEvents(ItemListed<WorkshopNft>)` を呼んで JSON を返す（ページング対応）。
+- `/api/health`：ネットワーク疎通／RPC健全性チェック。
 
 ## バリデーション・UX
-- 価格 > 0、ネットワーク一致（testnet 既定）、署名前の確認ダイアログ、失敗時トースト＋Tx ハッシュ表示。
-- 一覧の重複排除：`ItemDelisted` / `ItemPurchased` を反映し、在庫チェックは購入直前に再クエリ。
+- 価格 > 0、URL 形式、name/description の非空。
+- ネットワーク/アドレス不一致時の抑止、マルチクリック防止（Button disabled）。
+- 失敗トーストに理由（insufficient funds / not listed / already purchased など）とTxハッシュ。
 
 ## 環境変数
-- `NEXT_PUBLIC_SUI_NETWORK`（`testnet` 既定）  
-- `NEXT_PUBLIC_PACKAGE_ID`（デプロイ済み Move パッケージ ID）
+- `NEXT_PUBLIC_SUI_NETWORK`（`testnet` 既定）
+- `NEXT_PUBLIC_PACKAGE_ID`（Move パッケージID）
+- （任意）`NEXT_PUBLIC_POLICY_ID`（参照が必要な場合）
 
-## スコープ外
-- オークション等の拡張 Kiosk アプリ（将来拡張）。:contentReference[oaicite:18]{index=18}
+## 受け入れ基準（E2E）
+- Kioskが存在しないウォレットでも「Mint→place→List→Purchase→Delist」まで **UI操作のみ**で成功。
+- 一覧のページングとリアルタイム反映（WSが落ちてもポーリング継続）。
+- ダーク/ライト両テーマで視認性が確保される。
