@@ -98,6 +98,7 @@ public struct WorkshopNft has key, store {
 
 /// モジュールを初期化
 /// - フロントエンドのメタデータ表示用にDisplay<WorkshopNft>を作成・設定
+/// - TransferPolicy<WorkshopNft>を作成・共有（Kiosk取引を可能化）
 /// - Publisherをデプロイヤーに転送
 #[allow(lint(share_owned))]
 fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
@@ -119,6 +120,11 @@ fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
     // Move 2024のメソッド構文: レシーバーの型と同じモジュールから関数を呼び出す
     display.update_version();
     public_share_object(display);
+
+    // TransferPolicy<WorkshopNft>を作成・共有（Kiosk取引を可能化）
+    let (policy, policy_cap) = transfer_policy::new<WorkshopNft>(&publisher, ctx);
+    public_share_object(policy);
+    public_transfer(policy_cap, ctx.sender());
 
     // Publisherをデプロイヤーに転送
     public_transfer(publisher, ctx.sender());
@@ -184,24 +190,6 @@ entry fun mint(
 ) {
     let nft = mint_nft(name, description, url, clock, ctx);
     public_transfer(nft, ctx.sender());
-}
-
-/// TransferPolicy<WorkshopNft>を初期化（エントリー関数）
-///
-/// パラメータ:
-/// - publisher: パッケージのPublisherオブジェクト
-/// - ctx: トランザクションコンテキスト
-///
-/// 中断条件: 転送ポリシーが既に存在するか、呼び出し元が権限を持たない場合
-#[allow(lint(share_owned))]
-entry fun init_transfer_policy(
-    publisher: Publisher,
-    ctx: &mut TxContext,
-) {
-    let (policy, cap) = transfer_policy::new<WorkshopNft>(&publisher, ctx);
-    public_share_object(policy);
-    public_transfer(cap, ctx.sender());
-    public_transfer(publisher, ctx.sender());
 }
 
 // ===== Kiosk統合関数 =====
