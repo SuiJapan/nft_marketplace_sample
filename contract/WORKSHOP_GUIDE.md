@@ -281,7 +281,7 @@ sui client call \
   --package $PACKAGE_ID \
   --module workshop_nft \
   --function mint \
-  --args "Rare Sword" "A powerful blade" "https://example.com/sword.png" $CLOCK \
+  --args "Rare Sword" "A powerful blade" "<img src="https://picsum.photos/300/300">" $CLOCK \
   --gas-budget 10000000
 
 # NFT_IDを記録
