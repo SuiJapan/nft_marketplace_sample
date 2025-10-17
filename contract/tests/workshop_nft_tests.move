@@ -3,6 +3,8 @@ module contract::workshop_nft_tests {
     use std::string;
     use sui::test_scenario::{Self as ts, Scenario};
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
+    use sui::package::Publisher;
+    use sui::transfer::{public_share_object, public_transfer};
     use sui::transfer_policy::TransferPolicy;
     use contract::workshop_nft::{Self, WorkshopNft};
 
@@ -27,6 +29,13 @@ module contract::workshop_nft_tests {
     fun test_mint_nft_success() {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
+
+        // Initialize TransferPolicy via entry function
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
 
         // Mint NFT
         ts::next_tx(&mut scenario, USER1);
@@ -56,6 +65,12 @@ module contract::workshop_nft_tests {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
+
         // Try to mint NFT with empty name
         ts::next_tx(&mut scenario, USER1);
         {
@@ -76,6 +91,12 @@ module contract::workshop_nft_tests {
     fun test_mint_nft_empty_description() {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
+
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
 
         // Try to mint NFT with empty description
         ts::next_tx(&mut scenario, USER1);
@@ -98,6 +119,12 @@ module contract::workshop_nft_tests {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
+
         // Try to mint NFT with empty URL
         ts::next_tx(&mut scenario, USER1);
         {
@@ -118,6 +145,12 @@ module contract::workshop_nft_tests {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
+
         // Verify TransferPolicy was created and shared by init()
         ts::next_tx(&mut scenario, ADMIN);
         {
@@ -134,12 +167,18 @@ module contract::workshop_nft_tests {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
+
         // Create Kiosk for USER1
         ts::next_tx(&mut scenario, USER1);
         {
             let (kiosk, kiosk_cap) = kiosk::new(ts::ctx(&mut scenario));
-            transfer::public_share_object(kiosk);
-            transfer::public_transfer(kiosk_cap, USER1);
+            public_share_object(kiosk);
+            public_transfer(kiosk_cap, USER1);
         };
 
         // Mint and list NFT
@@ -172,12 +211,18 @@ module contract::workshop_nft_tests {
         let mut scenario = ts::begin(ADMIN);
         init_module(&mut scenario);
 
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            workshop_nft::init_transfer_policy(publisher, ts::ctx(&mut scenario));
+        };
+
         // Create Kiosk for USER1
         ts::next_tx(&mut scenario, USER1);
         {
             let (kiosk, kiosk_cap) = kiosk::new(ts::ctx(&mut scenario));
-            transfer::public_share_object(kiosk);
-            transfer::public_transfer(kiosk_cap, USER1);
+            public_share_object(kiosk);
+            public_transfer(kiosk_cap, USER1);
         };
 
         // Try to mint and list NFT with zero price

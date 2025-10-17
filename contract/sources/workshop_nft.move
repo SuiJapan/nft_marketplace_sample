@@ -8,11 +8,13 @@
 /// - TransferPolicy: Enable NFT trading on Kiosk
 module contract::workshop_nft;
 
-use std::string::String;
-use sui::package;
+use std::string::{Self as string, String};
 use sui::display;
-use sui::transfer_policy;
 use sui::kiosk::{Kiosk, KioskOwnerCap};
+use sui::package;
+use sui::package::Publisher;
+use sui::transfer::{public_share_object, public_transfer};
+use sui::transfer_policy;
 
 // ===== Error Codes =====
 
@@ -51,28 +53,22 @@ fun init(otw: WORKSHOP_NFT, ctx: &mut TxContext) {
 
     // Create Display object for WorkshopNft with fields
     let keys = vector[
-        b"name".to_string(),
-        b"description".to_string(),
-        b"image_url".to_string(),
+        string::utf8(b"name"),
+        string::utf8(b"description"),
+        string::utf8(b"image_url"),
     ];
     let values = vector[
-        b"{name}".to_string(),
-        b"{description}".to_string(),
-        b"{url}".to_string(),
+        string::utf8(b"{name}"),
+        string::utf8(b"{description}"),
+        string::utf8(b"{url}"),
     ];
     let mut display = display::new_with_fields<WorkshopNft>(&publisher, keys, values, ctx);
-
-    // Update and freeze the display
+    // Move 2024 method syntax: call functions from the same module as the receiver's type
     display.update_version();
+    public_share_object(display);
 
-    // Create and share TransferPolicy so Kiosk purchases work out of the box
-    let (policy, policy_cap) = transfer_policy::new<WorkshopNft>(&publisher, ctx);
-    transfer::public_share_object(policy);
-    transfer::public_transfer(policy_cap, ctx.sender());
-
-    // Transfer Display and Publisher to the deployer
-    transfer::public_transfer(display, ctx.sender());
-    transfer::public_transfer(publisher, ctx.sender());
+    // Transfer Publisher back to the deployer
+    public_transfer(publisher, ctx.sender());
 }
 
 // ===== Core NFT Functions =====
@@ -92,7 +88,7 @@ public(package) fun mint_nft(
     name: String,
     description: String,
     url: String,
-    ctx: &mut TxContext
+    ctx: &mut TxContext,
 ): WorkshopNft {
     // Validate inputs
     assert!(!name.is_empty(), EEmptyString);
@@ -123,10 +119,28 @@ entry fun mint(
     name: String,
     description: String,
     url: String,
-    ctx: &mut TxContext
+    ctx: &mut TxContext,
 ) {
     let nft = mint_nft(name, description, url, ctx);
-    transfer::public_transfer(nft, ctx.sender());
+    public_transfer(nft, ctx.sender());
+}
+
+/// Initialize TransferPolicy<WorkshopNft> (entry function)
+///
+/// Parameters:
+/// - publisher: Publisher object for the package
+/// - ctx: Transaction context
+///
+/// Aborts if: Transfer policy already exists or caller is unauthorized
+#[allow(lint(share_owned))]
+entry fun init_transfer_policy(
+    publisher: Publisher,
+    ctx: &mut TxContext,
+) {
+    let (policy, cap) = transfer_policy::new<WorkshopNft>(&publisher, ctx);
+    public_share_object(policy);
+    public_transfer(cap, ctx.sender());
+    public_transfer(publisher, ctx.sender());
 }
 
 // ===== Kiosk Integration Functions =====
@@ -150,6 +164,7 @@ public(package) fun place_and_list_core(
     assert!(price > 0, EInvalidPrice);
 
     // Place the NFT in the Kiosk and list it for sale
+    // Method syntax on Kiosk since the function is defined in the same module as the receiver type
     kiosk.place_and_list(kiosk_cap, nft, price);
 }
 
@@ -174,7 +189,7 @@ entry fun mint_and_list(
     description: String,
     url: String,
     price: u64,
-    ctx: &mut TxContext
+    ctx: &mut TxContext,
 ) {
     // Mint the NFT
     let nft = mint_nft(name, description, url, ctx);
